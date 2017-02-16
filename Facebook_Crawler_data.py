@@ -1,37 +1,37 @@
-import requests, os, time, json
-import argparse, sys
+import argparse
 from datetime import datetime
-
 from multiprocessing import Pool
 
-##########################################################################################################
-def getRequests(url):
+import json
+import os
+import requests
+import time
 
-    requests_result = requests.get(url, headers={'Connection':'close'}).json()
+
+def getRequests(url):
+    requests_result = requests.get(url, headers={'Connection': 'close'}).json()
     time.sleep(0.01)
 
     return requests_result
 
-##########################################################################################################
-def getFeedIds(feeds, feed_list):
 
+def getFeedIds(feeds, feed_list):
     feeds = feeds['feed'] if 'feed' in feeds else feeds
 
     for feed in feeds['data']:
         feed_list.append(feed['id'])
         if not stream:
             print('Feed found: ' + feed['id'] + '\n')
-            #log.write('Feed found: ' + feed['id'] + '\n')
-    
+            # log.write('Feed found: ' + feed['id'] + '\n')
+
     if 'paging' in feeds and 'next' in feeds['paging']:
         feeds_url = feeds['paging']['next']
         feed_list = getFeedIds(getRequests(feeds_url), feed_list)
 
     return feed_list
 
-##########################################################################################################
-def getComments(comments, comments_count):
 
+def getComments(comments, comments_count):
     # If comments exist.
     comments = comments['comments'] if 'comments' in comments else comments
     if 'data' in comments:
@@ -52,16 +52,16 @@ def getComments(comments, comments_count):
                 'created_time': comment['created_time']
             }
 
-            comments_count+= 1
+            comments_count += 1
 
             if stream:
                 print(comment_content)
             else:
                 print('Processing comment: ' + comment['id'] + '\n')
                 comment_file = open(comments_dir + comment['id'] + '.json', 'w')
-                comment_file.write(json.dumps(comment_content, indent = 4, ensure_ascii = False))
+                comment_file.write(json.dumps(comment_content, indent=4, ensure_ascii=False))
                 comment_file.close()
-                #log.write('Processing comment: ' + feed_id + '/' + comment['id'] + '\n')
+                # log.write('Processing comment: ' + feed_id + '/' + comment['id'] + '\n')
 
         # Check comments has next or not.
         if 'next' in comments['paging']:
@@ -70,9 +70,8 @@ def getComments(comments, comments_count):
 
     return comments_count
 
-##########################################################################################################
-def getReactions(reactions, reactions_count_dict):
 
+def getReactions(reactions, reactions_count_dict):
     # If reactions exist.
     reactions = reactions['reactions'] if 'reactions' in reactions else reactions
     if 'data' in reactions:
@@ -85,49 +84,49 @@ def getReactions(reactions, reactions_count_dict):
         for reaction in reactions['data']:
 
             if reaction['type'] == 'LIKE':
-                reactions_count_dict['like']+= 1
+                reactions_count_dict['like'] += 1
             elif reaction['type'] == 'LOVE':
-                reactions_count_dict['love']+= 1
+                reactions_count_dict['love'] += 1
             elif reaction['type'] == 'HAHA':
-                reactions_count_dict['haha']+= 1
+                reactions_count_dict['haha'] += 1
             elif reaction['type'] == 'WOW':
-                reactions_count_dict['wow']+= 1
+                reactions_count_dict['wow'] += 1
             elif reaction['type'] == 'SAD':
-                reactions_count_dict['sad']+= 1
+                reactions_count_dict['sad'] += 1
             elif reaction['type'] == 'ANGRY':
-                reactions_count_dict['angry']+= 1
+                reactions_count_dict['angry'] += 1
 
             if stream:
                 print(reaction)
             else:
                 print('Processing reaction: ' + reaction['id'] + '\n')
                 reaction_file = open(reactions_dir + reaction['id'] + '.json', 'w')
-                reaction_file.write(json.dumps(reaction, indent = 4, ensure_ascii = False))
+                reaction_file.write(json.dumps(reaction, indent=4, ensure_ascii=False))
                 reaction_file.close()
-                #log.write('Processing reaction: ' + feed_id + '/' + reaction['id'] + '\n')
+                # log.write('Processing reaction: ' + feed_id + '/' + reaction['id'] + '\n')
 
         # Check reactions has next or not.
         if 'next' in reactions['paging']:
             reactions_url = reactions['paging']['next']
             reactions_count_dict = getReactions(getRequests(reactions_url), reactions_count_dict)
-            
+
     return reactions_count_dict
 
-##########################################################################################################
-def getAttachments(attachments, attachments_content):
 
+def getAttachments(attachments, attachments_content):
     # If attachments exist.
     attachments = attachments['attachments'] if 'attachments' in attachments else attachments
     if 'data' in attachments:
         attachments_content['title'] = attachments['data'][0]['title'] if 'title' in attachments['data'][0] else ''
-        attachments_content['description'] = attachments['data'][0]['description'] if 'description' in attachments['data'][0] else ''
-        attachments_content['target'] = attachments['data'][0]['target']['url'] if 'target' in attachments['data'][0] and 'url' in attachments['data'][0]['target'] else ''
+        attachments_content['description'] = attachments['data'][0]['description'] if 'description' in \
+                                                                                      attachments['data'][0] else ''
+        attachments_content['target'] = attachments['data'][0]['target']['url'] if 'target' in attachments['data'][
+            0] and 'url' in attachments['data'][0]['target'] else ''
 
     return attachments_content
 
-##########################################################################################################
-def getFeed(feed_id):
 
+def getFeed(feed_id):
     feed_url = 'https://graph.facebook.com/v2.7/' + feed_id
 
     if not stream:
@@ -137,9 +136,11 @@ def getFeed(feed_id):
 
         os.chdir(feed_dir)
 
-        print('\nProcessing feed: ' + feed_id + '\nAt: ' + datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') + '\n')
+        print(
+            '\nProcessing feed: ' + feed_id + '\nAt: ' + datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') + '\n')
         log = open('../log', 'a')
-        log.write('\nProcessing feed: ' + feed_id + '\nAt: ' + datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') + '\n')
+        log.write(
+            '\nProcessing feed: ' + feed_id + '\nAt: ' + datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S') + '\n')
         log.close()
 
     # For comments.
@@ -158,7 +159,7 @@ def getFeed(feed_id):
         }
         reactions_url = feed_url + '?fields=reactions.limit(100)&' + token
         reactions_count_dict = getReactions(getRequests(reactions_url), reactions_count_dict)
-    
+
     # For attachments.
     attachments_content = {
         'title': '',
@@ -189,15 +190,14 @@ def getFeed(feed_id):
             print(feed_content)
         else:
             feed_file = open(feed_id + '.json', 'w')
-            feed_file.write(json.dumps(feed_content, indent = 4, ensure_ascii = False))
+            feed_file.write(json.dumps(feed_content, indent=4, ensure_ascii=False))
             feed_file.close()
 
     if not stream:
         os.chdir('../')
 
-##########################################################################################################
-def getTarget(target):
 
+def getTarget(target):
     if not stream:
         target_dir = target + '/'
         if not os.path.exists(target_dir):
@@ -207,11 +207,13 @@ def getTarget(target):
         log = open('log', 'w')
         start_time = datetime.now()
         execution_start_time = time.time()
-        print('Task start at:' + datetime.strftime(start_time, '%Y-%m-%d %H:%M:%S') + '\nTaget: ' + target + '\nSince: ' + since + '\nUntil: ' + until + '\n')
-        log.write('Task start at:' + datetime.strftime(start_time, '%Y-%m-%d %H:%M:%S') + '\nTaget: ' + target + '\nSince: ' + since + '\nUntil: ' + until + '\n')
+        print('Task start at:' + datetime.strftime(start_time,
+                                                   '%Y-%m-%d %H:%M:%S') + '\nTaget: ' + target + '\nSince: ' + since + '\nUntil: ' + until + '\n')
+        log.write('Task start at:' + datetime.strftime(start_time,
+                                                       '%Y-%m-%d %H:%M:%S') + '\nTaget: ' + target + '\nSince: ' + since + '\nUntil: ' + until + '\n')
         log.close()
 
-    #Get list of feed id from target.
+    # Get list of feed id from target.
     feeds_url = 'https://graph.facebook.com/v2.7/' + target + '/?fields=feed.limit(100).since(' + since + ').until(' + until + '){id}&' + token
     feed_list = getFeedIds(getRequests(feeds_url), [])
 
@@ -221,7 +223,7 @@ def getTarget(target):
             feed_list_file.write(id + '\n')
         feed_list_file.close()
 
-    #Get message, comments and reactions from feed.
+    # Get message, comments and reactions from feed.
     target_pool = Pool()
     target_pool.map(getFeed, feed_list)
     target_pool.close()
@@ -231,18 +233,18 @@ def getTarget(target):
         cost_time = time.time() - execution_start_time
         print('\nTask end Time: ' + datetime.strftime(end_time, '%Y-%m-%d %H:%M:%S') + '\nTime Cost: ' + str(cost_time))
         log = open('log', 'a')
-        log.write('\nTask end Time: ' + datetime.strftime(end_time, '%Y-%m-%d %H:%M:%S') + '\nTime Cost: ' + str(cost_time))
+        log.write(
+            '\nTask end Time: ' + datetime.strftime(end_time, '%Y-%m-%d %H:%M:%S') + '\nTime Cost: ' + str(cost_time))
         log.close()
         os.chdir('../')
 
-
-##
 
 if __name__ == '__main__':
     # Set crawler target and parameters.
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("target", help="Set the target fans page(at least one) you want to crawling. Ex: 'appledaily.tw' or 'appledaily.tw, ETtoday'")
+    parser.add_argument("target",
+                        help="Set the target fans page(at least one) you want to crawling. Ex: 'appledaily.tw' or 'appledaily.tw, ETtoday'")
     parser.add_argument("since", help="Set the start date you want to crawling. Format: 'yyyy-mm-dd HH:MM:SS'")
     parser.add_argument("until", help="Set the end date you want to crawling. Format: 'yyyy-mm-dd HH:MM:SS'")
 
@@ -270,7 +272,7 @@ if __name__ == '__main__':
 
     token = 'access_token=' + app_id + '|' + app_secret
 
-    #Create a directory to restore the result if not in stream mode.
+    # Create a directory to restore the result if not in stream mode.
     if not stream:
         result_dir = 'Result/'
         if not os.path.exists(result_dir):
@@ -280,9 +282,9 @@ if __name__ == '__main__':
     if target.find(',') == -1:
 
         getTarget(target)
-        
+
     else:
 
         target = target.split(',')
-        for t in target :
+        for t in target:
             getTarget(t)
